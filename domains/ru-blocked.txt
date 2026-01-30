@@ -4,7 +4,7 @@ deepl.com
 artstation.com
 
 # VSCode
-marketplace.visualstudio.com
+update.code.visualstudio.com
 
 # Google
 play.google.com
