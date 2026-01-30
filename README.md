@@ -61,7 +61,7 @@ rule-providers:
     behavior: classical
     format: yaml
     url: https://github.com/Aligotr/rule-set-ru/releases/latest/download/apps_direct.yaml
-    path: ./rules/apps-direct.yaml
+    path: ./rules/apps_direct.yaml
     interval: 86400
 
   geosite-proxy:
