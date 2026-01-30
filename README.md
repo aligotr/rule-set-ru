@@ -83,8 +83,8 @@ rules:
 ```yaml
 geodata-mode: true
 geox-url:
-  geoip: "https://github.com/Aligotr/rule-set-ru/releases/latest/download/geoip.dat"
-  geosite: "https://github.com/Aligotr/rule-set-ru/releases/latest/download/geosite.dat"
+  geoip: https://github.com/Aligotr/rule-set-ru/releases/latest/download/geoip.dat
+  geosite: https://github.com/Aligotr/rule-set-ru/releases/latest/download/geosite.dat
 
 rules:
   - GEOIP,PRIVATE,DIRECT
