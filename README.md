@@ -20,7 +20,7 @@
     - ➡️ https://github.com/Aligotr/rule-sets-ru/releases/latest/download/geosite_direct.srs
     - 🔁 https://github.com/Aligotr/rule-sets-ru/releases/latest/download/geosite_proxy.srs
     - 🚫 https://github.com/Aligotr/rule-sets-ru/releases/latest/download/geosite_block.srs
-- 📦 **Приложения**
+- 📦 **Apps**
   - _Mihomo.yaml_
     - ➡️ https://github.com/Aligotr/rule-sets-ru/releases/latest/download/apps_direct.yaml
     - 🔁 https://github.com/Aligotr/rule-sets-ru/releases/latest/download/apps_proxy.yaml
@@ -29,6 +29,22 @@
     - 🔁 https://github.com/Aligotr/rule-sets-ru/releases/latest/download/apps_proxy.srs
 - 🗜 **Дополнительно**
   - [Исходные текстовые списки (.zip)](https://github.com/Aligotr/rule-sets-ru/releases/latest/download/sources.zip)
+
+## 📁Состав
+
+**GeoIP**
+  - geoip.dat    - private, ru-blocked (antifilter-ipsum, discord-voice-ips)
+  - geoip_proxy  - antifilter-ipsum, discord-voice-ips
+
+**GeoSite**
+  - geosite.dat     - private, category-gov-ru, category-ads-all, win-spy, ru-blocked (antifilter-community, re-filter), youtube, discord
+  - geosite_direct  - private, category-gov-ru
+  - geosite_block   - win-spy, category-ads-all
+  - geosite_proxy   - ru-blocked (antifilter-community, re-filter), youtube, discord
+
+**Apps**
+  - apps_direct  - torrent-clients
+  - apps_proxy   - ru-blocked(discord, chatgpt...)
 
 ## 📦 Как использовать
 
