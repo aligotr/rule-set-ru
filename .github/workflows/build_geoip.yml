@@ -1,0 +1,45 @@
+name: Build GeoIP
+on:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      OUTPUT_PATH: output
+
+    steps:
+      # Install dependencies
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout Loyalsoldier/geoip
+        uses: actions/checkout@v4
+        with:
+          repository: Loyalsoldier/geoip
+          path: geoip
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: geoip/go.mod
+
+      # Build
+      - name: Build GeoIP
+        run: |
+          # Сборка
+          go build -C geoip .
+          geoip/geoip convert -c geoip_v2ray_config.json
+
+          # Перемещение результатов
+          mv output/srs/ru-blocked.srs output/geoip_proxy.srs
+          mv output/mrs/ru-blocked.mrs output/geoip_proxy.mrs
+          for f in output/text/*; do mv "$f" "output/text/geoip_$(basename "$f")"; done
+          rm -rf output/{mrs,srs}
+
+      # Uploading results
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: geoip-output
+          path: output

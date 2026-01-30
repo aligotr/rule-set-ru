@@ -1,0 +1,175 @@
+name: Build GeoSite
+on:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BIN_PATH: bin # Относительно $(pwd)
+      DLC_PATH: dlc
+      DATA_PATH: community/data
+      V2RAY_PATH: community/build
+      OUTPUT_PATH: output
+      OUTPUT_TEXT_PATH: output/text
+
+    steps:
+      # Install dependencies
+      - name: Checkout codebase
+        uses: actions/checkout@v4
+
+      - name: Checkout Loyalsoldier/domain-list-custom
+        uses: actions/checkout@v4
+        with:
+          repository: Loyalsoldier/domain-list-custom
+          path: ${{ env.DLC_PATH }}
+
+      - name: Checkout v2fly/domain-list-community
+        uses: actions/checkout@v4
+        with:
+          repository: v2fly/domain-list-community
+          path: community
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ env.DLC_PATH }}/go.mod
+
+      - name: Install tools
+        run: |
+          echo "BIN_PATH=$(pwd)/${{ env.BIN_PATH }}" >> $GITHUB_ENV
+          mkdir -p ${{ env.BIN_PATH }}
+
+          # Sing-box
+          SB_URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.assets[] | select(.name | contains("linux-amd64.tar.gz")) | .browser_download_url')
+          curl -L "$SB_URL" | tar -xz --strip-components=1 -C ${{ env.BIN_PATH }}
+
+          # Mihomo
+          MIHOMO_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | jq -r '.assets[] | select(.name | contains("linux-amd64")) | select(.name | endswith(".gz")) | .browser_download_url' | head -n 1)
+          curl -L "$MIHOMO_URL" | gunzip > ${{ env.BIN_PATH }}/mihomo
+          chmod +x ${{ env.BIN_PATH }}/mihomo
+
+      - name: Prepare PATHs
+        run: |
+          echo "${{ env.BIN_PATH }}" >> $GITHUB_PATH
+          mkdir -p ${{ env.V2RAY_PATH }} ${{ env.OUTPUT_TEXT_PATH }}
+
+      # Build
+      - name: Build V2Ray Dat
+        run: |
+          # Подготовка списков
+          # Proxy
+          curl -sSL "https://antifilter.download/list/domains.lst" > ${{ env.DATA_PATH }}/antifilter-all
+          curl -sSL "https://community.antifilter.download/list/domains.lst" > ${{ env.DATA_PATH }}/antifilter-community
+          curl -sSL "https://raw.githubusercontent.com/1andrevich/Re-filter-lists/main/domains_all.lst" > ${{ env.DATA_PATH }}/re-filter
+
+          # Block
+          curl -sSL "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt" | grep "0.0.0.0" | awk '{print $2}' > ${{ env.V2RAY_PATH }}/win-spy
+          {
+            # AdGuard
+            curl -sSL "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt" | \
+            perl -ne '/^\|\|([-_0-9a-zA-Z]+(\.[-_0-9a-zA-Z]+){1,64})\^$/ && print "$1\n"' | \
+            perl -ne 'print if not /^[0-9]{1,3}(\.[0-9]{1,3}){3}$/'
+            # Peter Lowe
+            # curl -sSL "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=1&mimetype=plaintext" | \
+            # perl -ne '/^127\.0\.0\.1\s([-_0-9a-zA-Z]+(\.[-_0-9a-zA-Z]+){1,64})$/ && print "$1\n"'
+          } | grep -vi "t.co" | sort -f -u > "${{ env.V2RAY_PATH }}/category-ads-all"
+
+          # Сборка
+          export LC_ALL=C
+          cp "${{ env.DATA_PATH }}"/{private,youtube,discord,category-gov-ru} "${{ env.V2RAY_PATH }}/"
+          cat "domains/ru-blocked.txt" "${{ env.DATA_PATH }}/antifilter-community" "${{ env.DATA_PATH }}/re-filter" | sort --ignore-case -u > "${{ env.V2RAY_PATH }}/ru-blocked"
+          cd "${{ env.DLC_PATH }}" && go run ./ --exportlists= --togfwlist=ru-blocked --datapath="../${{ env.V2RAY_PATH }}" && cd ..
+          mv "${{ env.DLC_PATH }}/publish/geosite.dat" "${{ env.OUTPUT_PATH }}/"
+
+          cat "${{ env.V2RAY_PATH }}/ru-blocked" "${{ env.DATA_PATH }}/antifilter-all" | sort -u > "${{ env.V2RAY_PATH }}/ru-blocked-all"
+          mv "${{ env.V2RAY_PATH }}/ru-blocked" "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
+          cd "${{ env.DLC_PATH }}" && go run ./ --exportlists= --togfwlist=ru-blocked-all --datname=geosite-all.dat --datapath="../${{ env.V2RAY_PATH }}" && cd ..
+          rm "${{ env.DLC_PATH }}/publish/gfwlist.txt"
+          mv "${{ env.DLC_PATH }}/publish/geosite-all.dat" "${{ env.OUTPUT_PATH }}/"
+
+          # Перемещение результатов
+          for f in "${{ env.V2RAY_PATH }}"/*; do
+              [ -e "$f" ] || continue
+              sed '
+                  s/#.*//;            # Удалить всё после символа #
+                  s/^[[:space:]]*//;  # Удалить пробелы в начале строки
+                  s/[[:space:]]*$//;  # Удалить пробелы в конце строки
+                  /^$/d               # Удалить пустые строки
+              ' "$f" > "${{ env.OUTPUT_TEXT_PATH }}/geosite_$(basename "$f").txt"
+              rm "$f"
+          done
+
+      - name: Build Mihomo YAML
+        run: |
+          build_mrs() {
+              local name=$1
+              shift
+              local files=("$@")
+              local buffer="temp.json"
+              trap 'rm -f "$buffer"' RETURN
+
+              # Создание YAML: первая строка payload, затем остальные с форматированием
+              echo "payload:" > "$buffer"
+              cat "${files[@]}" 2>/dev/null | sort -ui | sed "s/.*/- '+.&'/" >> "$buffer"
+
+              # Компиляция
+              mihomo convert-ruleset domain yaml "$buffer" "${{ env.OUTPUT_PATH }}/${name}.mrs"
+          }
+
+          build_mrs "geosite_direct" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_private.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt"
+
+          build_mrs "geosite_block" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.txt"
+
+          build_mrs "geosite_proxy" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
+
+      - name: Build Sing-box SRS
+        run: |
+          build_srs() {
+              local name=$1
+              shift
+              local files=("$@")
+              local buffer="temp.json"
+              trap 'rm -f "$buffer"' RETURN
+
+              # Сборка файлов, сортировка и передача в jq (без промежуточного .txt)
+              cat "${files[@]}" 2>/dev/null | sort -ui | jq -Rs '
+              {
+                "version": 1,
+                "rules": [
+                  {
+                    "domain_suffix": (split("\n") | map(select(length > 0)))
+                  }
+                ]
+              }' > "$buffer"
+
+              # Компиляция
+              sing-box rule-set compile "$buffer" --output "${{ env.OUTPUT_PATH }}/${name}.srs"
+          }
+
+          build_srs "geosite_direct" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_private.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt"
+
+          build_srs "geosite_block" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.txt"
+
+          build_srs "geosite_proxy" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.txt" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
+
+      # Uploading results
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: geosite-output
+          path: output
