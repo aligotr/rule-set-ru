@@ -96,6 +96,7 @@ jobs:
           input_path: ${{ env.V2RAY_PATH }}
           output_path: ${{ env.OUTPUT_TEXT_PATH }}
           prefix: geosite
+          ext: txt
 
       - name: Build Mihomo YAML
         run: |
