@@ -49,7 +49,7 @@ runs:
           rm "$file"
         }
 
-        echo "${in_path}"
+        ls -R "${in_path}"
 
         if [ -d "${in_path}" ]; then
           # Если это директория — перебираем файлы
@@ -60,6 +60,5 @@ runs:
           # Если это одиночный файл — обрабатываем его
           process_file "${in_path}"
         else
-
           echo "Warning: Path ${in_path} not found."
         fi
