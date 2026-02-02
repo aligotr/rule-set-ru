@@ -46,8 +46,6 @@ runs:
           rm "$file"
         }
 
-        ls -R "${{ inputs.input_path }}"
-
         if [ -d "${{ inputs.input_path }}" ]; then
           # Если это директория — перебираем файлы
           for f in "${{ inputs.input_path }}"/*; do
