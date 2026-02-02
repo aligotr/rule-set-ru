@@ -15,7 +15,7 @@ inputs:
   ext:
     description: Расширение конечного файла
     required: false
-    default: "lst"
+    default: ""
 
 runs:
   using: composite
@@ -27,15 +27,20 @@ runs:
           local out_path="${{ inputs.output_path }}"
           local raw_prefix="${{ inputs.prefix }}"
           local prefix="${raw_prefix:+"${raw_prefix}_"}"
-          local ext="${{ inputs.ext }}"
-        
+          local raw_ext="${{ inputs.ext }}"
+
+          filename=$(basename "$file")
+          if [ -n "$raw_ext" ]; then
+            filename="${base%.*}.${ext}"
+          fi
+
           [ -e "$file" ] || return 0  
           sed '
             s/#.*//;            # Удалить всё после символа #
             s/^[[:space:]{}\"']*//;  # Удалить пробелы и кавычки в начале
             s/[[:space:]{}\"']*$//;  # Удалить пробелы и кавычки в конце
             /^$/d               # Удалить пустые строки
-          ' "$file" > "${out_path}/${prefix}$(basename "$file").${ext}"
+          ' "$file" > "${out_path}/${prefix}${filename}"
           
           rm "$file"
         }
