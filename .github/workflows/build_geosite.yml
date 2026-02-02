@@ -84,22 +84,17 @@ jobs:
           mv "${{ env.DLC_PATH }}/publish/geosite.dat" "${{ env.OUTPUT_PATH }}/"
 
           cat "${{ env.V2RAY_PATH }}/ru-blocked" "${{ env.DATA_PATH }}/antifilter-all" | sort -u > "${{ env.V2RAY_PATH }}/ru-blocked-all"
-          mv "${{ env.V2RAY_PATH }}/ru-blocked" "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
+          mv "${{ env.V2RAY_PATH }}/ru-blocked" "${{ env.DATA_PATH }}/ru-blocked"
           cd "${{ env.DLC_PATH }}" && go run ./ --exportlists= --togfwlist=ru-blocked-all --datname=geosite-all.dat --datapath="../${{ env.V2RAY_PATH }}" && cd ..
           rm "${{ env.DLC_PATH }}/publish/gfwlist.txt"
           mv "${{ env.DLC_PATH }}/publish/geosite-all.dat" "${{ env.OUTPUT_PATH }}/"
+          cp "${{ env.DATA_PATH }}/ru-blocked" "${{ env.V2RAY_PATH }}/ru-blocked"
 
-          # Перемещение результатов
-          for f in "${{ env.V2RAY_PATH }}"/*; do
-              [ -e "$f" ] || continue
-              sed '
-                  s/#.*//;            # Удалить всё после символа #
-                  s/^[[:space:]]*//;  # Удалить пробелы в начале строки
-                  s/[[:space:]]*$//;  # Удалить пробелы в конце строки
-                  /^$/d               # Удалить пустые строки
-              ' "$f" > "${{ env.OUTPUT_TEXT_PATH }}/geosite_$(basename "$f").txt"
-              rm "$f"
-          done
+      - name: Normalize and move data
+        uses: ./.github/actions/normalize
+        with:
+          input_path: ${{ env.V2RAY_PATH }}
+          output_path: ${{ env.OUTPUT_TEXT_PATH }}/geosite_$(basename "$f").lst
 
       - name: Build Mihomo YAML
         run: |
@@ -119,16 +114,16 @@ jobs:
           }
 
           build_mrs "geosite_direct" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt"
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.lst"
 
           build_mrs "geosite_block" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.txt"
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.lst" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.lst"
 
           build_mrs "geosite_proxy" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.lst" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.lst" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.lst"
 
       - name: Build Sing-box SRS
         run: |
@@ -139,7 +134,7 @@ jobs:
               local buffer="temp.json"
               trap 'rm -f "$buffer"' RETURN
 
-              # Сборка файлов, сортировка и передача в jq (без промежуточного .txt)
+              # Сборка файлов, сортировка и передача в jq (без промежуточного .lst)
               cat "${files[@]}" 2>/dev/null | sort -ui | jq -Rs '
               {
                 "version": 1,
@@ -155,16 +150,16 @@ jobs:
           }
 
           build_srs "geosite_direct" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt"
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.lst"
 
           build_srs "geosite_block" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.txt"
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.lst" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.lst"
 
           build_srs "geosite_proxy" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.lst" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.lst" \
+              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.lst"
 
       # Uploading results
       - name: Upload artifacts
