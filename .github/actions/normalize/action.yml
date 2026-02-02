@@ -11,9 +11,11 @@ inputs:
   prefix:
     description: Префикс конечного файла
     required: false
+    default: ""
   ext:
     description: Расширение конечного файла
     required: false
+    default: "lst"
 
 runs:
   using: composite
@@ -25,8 +27,7 @@ runs:
           local out_path="${{ inputs.output_path }}"
           local raw_prefix="${{ inputs.prefix }}"
           local prefix="${raw_prefix:+"${raw_prefix}_"}"
-          local raw_ext="${{ inputs.ext }}"
-          local ext="${raw_ext:-lst}"
+          local ext="${{ inputs.ext }}"
         
           [ -e "$file" ] || return 0  
           sed '
