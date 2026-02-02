@@ -170,9 +170,6 @@ jobs:
 
       - name: Build lst
         run: |
-
-          ls -R "${{ env.OUTPUT_TEXT_PATH }}"
-
           cat \
             "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt" \
             "${{ env.OUTPUT_TEXT_PATH }}/ru-direct.txt" | \
