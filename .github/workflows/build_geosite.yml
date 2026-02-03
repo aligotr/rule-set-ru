@@ -83,7 +83,13 @@ jobs:
           curl -sSL "https://raw.githubusercontent.com/1andrevich/Re-filter-lists/main/domains_all.lst" > ${{ env.DATA_PATH }}/re-filter
           cp "${{ env.DATA_PATH }}"/{youtube,discord} "${{ env.V2RAY_PATH }}/"
           grep -vE "^[[:space:]]*(include:|$)" "${{ env.DATA_PATH }}"/instagram > "${{ env.V2RAY_PATH }}/instagram"
-          cat "domains/a-proxy.txt" "${{ env.DATA_PATH }}/antifilter-community" "${{ env.DATA_PATH }}/re-filter" | sort --ignore-case -u > "${{ env.V2RAY_PATH }}/ru-blocked"
+          cat "domains/a-proxy.txt" \
+            "${{ env.DATA_PATH }}/youtube" \
+            "${{ env.DATA_PATH }}/discord" \
+            "${{ env.DATA_PATH }}/instagram" \
+            "${{ env.DATA_PATH }}/antifilter-community" \
+            "${{ env.DATA_PATH }}/re-filter" | \
+          sort --ignore-case -u > "${{ env.V2RAY_PATH }}/ru-blocked"
 
           # Сборка
           cd "${{ env.DLC_PATH }}" && go run ./ --exportlists= --togfwlist=ru-blocked --datapath="../${{ env.V2RAY_PATH }}" && cd ..
@@ -94,96 +100,57 @@ jobs:
         with:
           input_path: "${{ env.V2RAY_PATH }}"
           output_path: "${{ env.OUTPUT_TEXT_PATH }}"
-          prefix: geosite
-          ext: txt
 
-      - name: Build Mihomo YAML
+      - name: Build All Formats
         run: |
-          build_mrs() {
+          build_all() {
               local name=$1
               shift
               local files=("$@")
-              local buffer="temp.json"
-              trap 'rm -f "$buffer"' RETURN
+              local tmp_list="temp_unique_list.txt"
+              
+              # Сборка списка уникальных доменов для группы
+              cat "${files[@]}" 2>/dev/null | sort -ui | grep -v '^$' > "$tmp_list"
+              
+              # Если список пуст, выходим
+              [ -s "$tmp_list" ] || return 0
 
-              # Создание YAML: первая строка payload, затем остальные с форматированием
-              echo "payload:" > "$buffer"
-              cat "${files[@]}" 2>/dev/null | sort -ui | sed "s/.*/- '+.&'/" >> "$buffer"
+              # --- Формат .lst (простой текст) ---
+              cp "$tmp_list" "${{ env.OUTPUT_PATH }}/${name}.lst"
 
-              # Компиляция
-              mihomo convert-ruleset domain yaml "$buffer" "${{ env.OUTPUT_PATH }}/${name}.mrs"
-          }
+              # --- Формат .mrs (Mihomo/Clash Meta) ---
+              echo "payload:" > temp.yaml
+              sed "s/.*/- '+.&'/" "$tmp_list" >> temp.yaml
+              mihomo convert-ruleset domain yaml temp.yaml "${{ env.OUTPUT_PATH }}/${name}.mrs
 
-          build_mrs "geosite_direct" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-direct.txt"
-
-          build_mrs "geosite_block" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.txt"
-
-          build_mrs "geosite_proxy" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_instagram.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
-
-      - name: Build Sing-box SRS
-        run: |
-          build_srs() {
-              local name=$1
-              shift
-              local files=("$@")
-              local buffer="temp.json"
-              trap 'rm -f "$buffer"' RETURN
-
-              # Сборка файлов, сортировка и передача в jq (без промежуточного .txt)
-              cat "${files[@]}" 2>/dev/null | sort -ui | jq -Rs '
+              # --- Формат .srs (Sing-box) ---
+              jq -Rs '
               {
                 "version": 1,
-                "rules": [
-                  {
-                    "domain_suffix": (split("\n") | map(select(length > 0)))
-                  }
-                ]
-              }' > "$buffer"
+                "rules": [{ "domain_suffix": (split("\n") | map(select(length > 0))) }]
+              }' "$tmp_list" > temp.json
+              sing-box rule-set compile temp.json --output "${{ env.OUTPUT_PATH }}/${name}.srs"
 
-              # Компиляция
-              sing-box rule-set compile "$buffer" --output "${{ env.OUTPUT_PATH }}/${name}.srs"
+              rm -f temp.yaml temp.json "$tmp_list"
           }
+         
+          build_all "geosite_direct" \
+              "${{ env.OUTPUT_TEXT_PATH }}/category-gov-ru" \
+              "${{ env.OUTPUT_TEXT_PATH }}/ru-direct"
 
-          build_srs "geosite_direct" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-direct.txt"
+          build_all "geosite_block" \
+              "${{ env.OUTPUT_TEXT_PATH }}/win-spy" \
+              "${{ env.OUTPUT_TEXT_PATH }}/category-ads-all"
 
-          build_srs "geosite_block" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.txt"
+          build_all "geosite_proxy" \
+              "${{ env.OUTPUT_TEXT_PATH }}/youtube" \
+              "${{ env.OUTPUT_TEXT_PATH }}/discord" \
+              "${{ env.OUTPUT_TEXT_PATH }}/instagram" \
+              "${{ env.OUTPUT_TEXT_PATH }}/ru-blocked"
 
-          build_srs "geosite_proxy" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_instagram.txt" \
-              "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt"
-
-      - name: Build lst
+      - name: Rename text files
         run: |
-          cat \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-gov-ru.txt" \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-direct.txt" | \
-          sort -u > "${{ env.OUTPUT_PATH }}/geosite_direct.lst"
-
-          cat \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_win-spy.txt" \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_category-ads-all.txt" | \
-          sort -u > "${{ env.OUTPUT_PATH }}/geosite_block.lst"
-
-          cat \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_youtube.txt" \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_discord.txt" \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_instagram.txt" \
-            "${{ env.OUTPUT_TEXT_PATH }}/geosite_ru-blocked.txt" | \
-          sort -u > "${{ env.OUTPUT_PATH }}/geosite_proxy.lst"
+          find ${{ env.OUTPUT_TEXT_PATH }} -type f -not -name "geosite_*" -execdir mv {} geosite_{}.txt \;
 
       # Uploading results
       - name: Upload artifacts
