@@ -43,8 +43,6 @@ runs:
             /^[[:space:]]*include:/d;  # Удалить строки начинающиеся с "include:"
             /^$/d                      # Удалить пустые строки
           " "$file" > "${out_path}/${prefix}${filename}"
-
-          rm "$file"
         }
 
         if [ -d "${{ inputs.input_path }}" ]; then
