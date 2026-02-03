@@ -59,7 +59,10 @@ jobs:
       - name: Build V2Ray Dat
         run: |
           # Подготовка списков
+          export LC_ALL=C
+          
           # Direct
+          cp "${{ env.DATA_PATH }}"/{private,category-gov-ru} "${{ env.V2RAY_PATH }}/"
           cp "domains/a-direct.txt" ${{ env.V2RAY_PATH }}/ru-direct
 
           # Block
@@ -78,20 +81,13 @@ jobs:
           curl -sSL "https://antifilter.download/list/domains.lst" > ${{ env.DATA_PATH }}/antifilter-all
           curl -sSL "https://community.antifilter.download/list/domains.lst" > ${{ env.DATA_PATH }}/antifilter-community
           curl -sSL "https://raw.githubusercontent.com/1andrevich/Re-filter-lists/main/domains_all.lst" > ${{ env.DATA_PATH }}/re-filter
+          cp "${{ env.DATA_PATH }}"/{youtube,discord} "${{ env.V2RAY_PATH }}/"
+          grep -vE "^[[:space:]]*(include:|$)" "${{ env.DATA_PATH }}"/instagram > "${{ env.V2RAY_PATH }}/"
+          cat "domains/a-proxy.txt" "${{ env.DATA_PATH }}/antifilter-community" "${{ env.DATA_PATH }}/re-filter" | sort --ignore-case -u > "${{ env.V2RAY_PATH }}/ru-blocked"
 
           # Сборка
-          export LC_ALL=C
-          cp "${{ env.DATA_PATH }}"/{private,youtube,discord,instagram,category-gov-ru} "${{ env.V2RAY_PATH }}/"
-          cat "domains/a-proxy.txt" "${{ env.DATA_PATH }}/antifilter-community" "${{ env.DATA_PATH }}/re-filter" | sort --ignore-case -u > "${{ env.V2RAY_PATH }}/ru-blocked"
           cd "${{ env.DLC_PATH }}" && go run ./ --exportlists= --togfwlist=ru-blocked --datapath="../${{ env.V2RAY_PATH }}" && cd ..
           mv "${{ env.DLC_PATH }}/publish/geosite.dat" "${{ env.OUTPUT_PATH }}/"
-
-          cat "${{ env.V2RAY_PATH }}/ru-blocked" "${{ env.DATA_PATH }}/antifilter-all" | sort -u > "${{ env.V2RAY_PATH }}/ru-blocked-all"
-          mv "${{ env.V2RAY_PATH }}/ru-blocked" "${{ env.DATA_PATH }}/ru-blocked"
-          cd "${{ env.DLC_PATH }}" && go run ./ --exportlists= --togfwlist=ru-blocked-all --datname=geosite-all.dat --datapath="../${{ env.V2RAY_PATH }}" && cd ..
-          rm "${{ env.DLC_PATH }}/publish/gfwlist.txt"
-          mv "${{ env.DLC_PATH }}/publish/geosite-all.dat" "${{ env.OUTPUT_PATH }}/"
-          cp "${{ env.DATA_PATH }}/ru-blocked" "${{ env.V2RAY_PATH }}/ru-blocked"
 
       - name: Normalize and move data
         uses: ./.github/actions/normalize
