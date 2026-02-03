@@ -120,7 +120,7 @@ jobs:
               # --- Формат .mrs (Mihomo/Clash Meta) ---
               echo "payload:" > temp.yaml
               sed "s/.*/- '+.&'/" "$tmp_list" >> temp.yaml
-              mihomo convert-ruleset domain yaml temp.yaml "${{ env.OUTPUT_PATH }}/${name}.mrs
+              mihomo convert-ruleset domain yaml temp.yaml "${{ env.OUTPUT_PATH }}/${name}.mrs"
 
               # --- Формат .srs (Sing-box) ---
               jq -Rs '
