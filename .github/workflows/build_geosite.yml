@@ -63,7 +63,9 @@ jobs:
           
           # Direct
           cp "${{ env.DATA_PATH }}"/{private,category-gov-ru} "${{ env.V2RAY_PATH }}/"
-          cp "domains/a-direct.txt" ${{ env.V2RAY_PATH }}/ru-direct
+          cat "domains/a-direct.txt" \
+            "${{ env.V2RAY_PATH }}/category-gov-ru" | \
+          sort --ignore-case -u > "${{ env.V2RAY_PATH }}/ru-direct"
 
           # Block
           curl -sSL "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt" | grep "0.0.0.0" | awk '{print $2}' > ${{ env.V2RAY_PATH }}/win-spy
@@ -131,7 +133,6 @@ jobs:
           }
          
           build_all "geosite_direct" \
-              "${{ env.OUTPUT_TEXT_PATH }}/category-gov-ru" \
               "${{ env.OUTPUT_TEXT_PATH }}/ru-direct"
 
           build_all "geosite_block" \
