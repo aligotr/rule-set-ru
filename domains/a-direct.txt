@@ -1,3 +1,8 @@
+bitwarden.com
+vault.bitwarden.com
+api.bitwarden.com
+identity.bitwarden.com
+
 aligotr.ru
 rm0.ru
 max40in.ru
