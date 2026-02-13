@@ -3,6 +3,7 @@ apkmirror.com
 deepl.com
 artstation.com
 jetbrains.com
+rustdesk.com
 
 # VSCode
 marketplace.visualstudio.com
