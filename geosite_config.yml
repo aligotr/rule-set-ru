@@ -8,12 +8,13 @@ publish:
   direct: direct
   blocked: proxy
   category-ads: block
+  bitwarden: bitwarden
   google: google
   youtube: youtube
   facebook: facebook
   instagram: instagram
   discord: discord
-  bitwarden: bitwarden
+  telegram: telegram
 
 lists_community:
   direct:
@@ -49,12 +50,13 @@ lists_local:
 
 lists_community_expose:
   - private
+  - bitwarden
   - google
   - youtube
   - facebook
   - instagram
   - discord
-  - bitwarden
+  - telegram
 
 sources:
   winspy:
