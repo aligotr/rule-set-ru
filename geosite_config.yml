@@ -10,6 +10,7 @@ publish:
   category-ads: block
   google: google
   youtube: youtube
+  facebook: facebook
   instagram: instagram
   discord: discord
   bitwarden: bitwarden
@@ -50,6 +51,7 @@ lists_community_expose:
   - private
   - google
   - youtube
+  - facebook
   - instagram
   - discord
   - bitwarden
