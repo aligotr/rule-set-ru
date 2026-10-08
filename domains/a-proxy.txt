@@ -6,6 +6,8 @@ jetbrains.com
 rustdesk.com
 unsplash.com
 h-mdm.com
+docs.rw
+selfh.st
 
 # VSCode
 marketplace.visualstudio.com
