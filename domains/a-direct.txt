@@ -6,3 +6,14 @@ t8s.ru
 
 # Far Far West
 evilrapshield.com
+
+# Российские сервисы на не-.ru доменах
+yandex.net
+yandex.com
+yastatic.net
+vk.com
+vk.me
+vkuser.net
+userapi.com
+vk-cdn.net
+sberbank.com
