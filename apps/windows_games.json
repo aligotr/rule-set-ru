@@ -21,7 +21,8 @@
         "ACE-Service64.exe",
 
         "FarFarWest-Win64-Shipping.exe",
-        "FortniteClient-Win64-Shipping.exe"
+        "FortniteClient-Win64-Shipping.exe",
+        "WardogsClient-Win64-Shipping.exe"
       ]
     }
   ]
